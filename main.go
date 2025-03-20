@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"unicode/utf8"
 )
 
 var utf8Mask = []string{
@@ -44,6 +45,9 @@ var tmpl = template.Must(template.New("index").Parse(`
         h1 {
             text-align: center;
         }
+		p {
+			text-align: center;
+		}
         form {
             display: flex;
             justify-content: center;
@@ -92,6 +96,19 @@ var tmpl = template.Must(template.New("index").Parse(`
             align-items: center;
             justify-content: center;
         }
+		.details-box {
+			visibility: hidden; /* Keeps it invisible but allows space to be dynamically adjusted */
+			opacity: 0; /* Fully transparent */
+			transition: opacity 0.3s ease-in-out; /* Smooth fade-in */
+			margin-top: 20px;
+			padding: 10px;
+			background-color: #d4edda; /* Match the green box */
+			border: 1px solid black; /* Consistent with .rune-box */
+			border-radius: 5px;
+			text-align: center;
+			width: fit-content; /* Only as wide as needed */
+			max-width: 90%; /* Prevents overflow */
+		}
         .bytes-info {
             margin-top: 5px;
             display: flex;
@@ -130,49 +147,56 @@ var tmpl = template.Must(template.New("index").Parse(`
             width: 100%;
         }
     </style>
-    <script>
-        function toggleDetails(id) {
-            document.querySelectorAll('.mask-container').forEach(el => el.style.display = 'none');
-            var element = document.getElementById(id);
-            element.style.display = 'block';
-        }
-    </script>
 </head>
 <body>
     <h1>Rune Seer</h1>
-    <form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML">
-        <input type="text" name="input" placeholder="Enter text here" required>
-        <button type="submit">Submit</button>
-    </form>
+	<p>Enter text to see the UTF-8 encoding of each rune.</p>
+	<form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML">
+		<input type="text" name="input" placeholder="Enter text here" required>
+		<button type="submit">Submit</button>
+	</form>
     <div id="result" class="rune-container"></div>
+	<div id="details-box" class="details-box"></div>
 </body>
 </html>
 `))
 
 var resultTmpl = template.Must(template.New("result").Parse(`
 {{range .}}
-    <div class="rune-box" onclick="toggleDetails('details-{{.RuneIndex}}')">
-        <div class="char">{{.Char}}</div>
-        <div class="bytes-info">
-            {{range .RuneBytes}}
-                <div class="byte-box">
-                    {{.Binary}}
-                    <div class="byte-index">Index: {{.ByteIndex}}</div>
-                </div>
-            {{end}}
-        </div>
-        <div id="details-{{.RuneIndex}}" class="mask-container">
-            {{range .RuneBytes}}
-                <div class="byte-box">
-                    Mask: {{.Utf8Mask}}<br>
-                    {{.Binary}}
-                    <div class="byte-index">{{.Binary | printf "%%08b"}}</div>
-                </div>
-            {{end}}
-            <div style="text-align: center; margin-top: 10px; font-weight: bold;">Code Point: {{.CodePoint}}</div>
-        </div>
-    </div>
+	<div class="rune-box" 
+		hx-get="/details?char={{.Char}}" 
+		hx-target="#details-box" 
+		hx-swap="innerHTML show:top">
+		<div class="char">{{.Char}}</div>
+		<div class="bytes-info">
+			{{range .RuneBytes}}
+				<div class="byte-box">
+					{{.Binary}}
+				</div>
+			{{end}}
+		</div>
+	</div>
 {{end}}
+`))
+
+var detailsTmpl = template.Must(template.New("details").Parse(`
+<div class="details-box" style="visibility: visible; opacity: 1;">
+    <h2>Character: {{.Char}}</h2>
+    <div class="bytes-info">
+        {{range .RuneBytes}}
+            <div class="byte-box">
+                Mask: {{.Utf8Mask}}<br>
+                {{.Binary}}
+            </div>
+        {{end}}
+    </div>
+    <div style="margin-top: 10px; font-weight: bold;">
+        Unicode Binary: TBD
+    </div>
+    <div style="font-size: 1.2em; font-weight: bold;">
+        Code Point: {{.CodePoint}}
+    </div>
+</div>
 `))
 
 func main() {
@@ -188,6 +212,22 @@ func main() {
 		response := processInput(input)
 		w.Header().Set("Content-Type", "text/html")
 		resultTmpl.Execute(w, response)
+	})
+
+	http.HandleFunc("/details", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("HERE!")
+		char := r.URL.Query().Get("char")
+		if char == "" {
+			http.Error(w, "Character not provided", http.StatusBadRequest)
+			return
+		}
+
+		// Extract the first rune from the string
+		runeVal, _ := utf8.DecodeRuneInString(char)
+		runeInfo := processRune(runeVal)
+		fmt.Println("Rune Info: ", runeInfo)
+		w.Header().Set("Content-Type", "text/html")
+		detailsTmpl.Execute(w, runeInfo)
 	})
 
 	http.ListenAndServe(":8080", nil)
@@ -210,8 +250,27 @@ func processInput(input string) []RuneInfo {
 				Binary:        fmt.Sprintf("%08b", b),
 				Utf8Mask:      utf8Mask[j],
 			})
+			n++
 		}
 		runes = append(runes, rune)
 	}
 	return runes
+}
+
+func processRune(r rune) RuneInfo {
+	rune := RuneInfo{
+		Char:      string(r),
+		CodePoint: fmt.Sprintf("%d", r),
+	}
+
+	utf8Bytes := []byte(string(r))
+	for j, b := range utf8Bytes {
+		rune.RuneBytes = append(rune.RuneBytes, RuneByte{
+			RuneByteIndex: j,
+			Byte:          b,
+			Binary:        fmt.Sprintf("%08b", b),
+			Utf8Mask:      utf8Mask[j],
+		})
+	}
+	return rune
 }
