@@ -11,7 +11,9 @@ import (
 var utf8Mask = []string{
 	"0xxxxxxx",
 	"10xxxxxx",
+	"110xxxxx",
 	"1110xxxx",
+	"11110xxx",
 }
 
 type RuneInfo struct {
@@ -27,6 +29,7 @@ type RuneByte struct {
 	Byte          byte
 	Binary        string
 	Utf8Mask      string
+	Utf8Remainder string
 }
 
 var tmpl = template.Must(template.New("index").Parse(`
@@ -60,15 +63,30 @@ var tmpl = template.Must(template.New("index").Parse(`
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-        button {
+        .submit-button {
             padding: 8px 12px;
             font-size: 1em;
             border: none;
-            background-color: #007bff;
+            background-color: #5a9bd5;
             color: white;
             border-radius: 5px;
             cursor: pointer;
         }
+		.submit-button:hover {
+			background-color: #4a8bc4; /* Darker blue on hover */
+		}
+		.reset-button {
+			background-color: #e89f71; /* Red color */
+			color: white;
+			border: none;
+			padding: 8px 12px;
+			font-size: 1em;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+		.reset-button:hover {
+    		background-color: #d88a5f; /* Darker red on hover */
+		}
         .rune-container {
             display: flex;
             flex-wrap: wrap;
@@ -88,6 +106,9 @@ var tmpl = template.Must(template.New("index").Parse(`
             align-items: center;
             position: relative;
         }
+		.rune-box:hover {
+    		background-color: #b8dfc2; /* Slightly darker green */
+		}
         .char {
             font-size: 1.5em;
             font-weight: bold;
@@ -96,18 +117,25 @@ var tmpl = template.Must(template.New("index").Parse(`
             align-items: center;
             justify-content: center;
         }
+        .details-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+			margin-top: 10px;
+        }
 		.details-box {
-			visibility: hidden; /* Keeps it invisible but allows space to be dynamically adjusted */
-			opacity: 0; /* Fully transparent */
-			transition: opacity 0.3s ease-in-out; /* Smooth fade-in */
-			margin-top: 20px;
-			padding: 10px;
-			background-color: #d4edda; /* Match the green box */
-			border: 1px solid black; /* Consistent with .rune-box */
-			border-radius: 5px;
-			text-align: center;
-			width: fit-content; /* Only as wide as needed */
-			max-width: 90%; /* Prevents overflow */
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+            background-color:rgb(212, 219, 237);
+            border-radius: 5px;
+            cursor: pointer;
+            min-width: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
 		}
         .bytes-info {
             margin-top: 5px;
@@ -151,12 +179,20 @@ var tmpl = template.Must(template.New("index").Parse(`
 <body>
     <h1>Rune Seer</h1>
 	<p>Enter text to see the UTF-8 encoding of each rune.</p>
-	<form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML">
+	<form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" onreset="return false">
 		<input type="text" name="input" placeholder="Enter text here" required>
-		<button type="submit">Submit</button>
+		<button type="submit" class="submit-button">Submit</button>
+		<button type="reset" 
+			class="reset-button"
+			hx-get="/reset" 
+			hx-target="#result, #details" 
+			hx-swap="innerHTML" 
+			hx-trigger="click">
+			Reset
+		</button>
 	</form>
     <div id="result" class="rune-container"></div>
-	<div id="details-box" class="details-box"></div>
+	<div id="details" class="details-container"></div>
 </body>
 </html>
 `))
@@ -165,8 +201,8 @@ var resultTmpl = template.Must(template.New("result").Parse(`
 {{range .}}
 	<div class="rune-box" 
 		hx-get="/details?char={{.Char}}" 
-		hx-target="#details-box" 
-		hx-swap="innerHTML show:top">
+		hx-target="#details" 
+		hx-swap="innerHTML">
 		<div class="char">{{.Char}}</div>
 		<div class="bytes-info">
 			{{range .RuneBytes}}
@@ -180,21 +216,22 @@ var resultTmpl = template.Must(template.New("result").Parse(`
 `))
 
 var detailsTmpl = template.Must(template.New("details").Parse(`
-<div class="details-box" style="visibility: visible; opacity: 1;">
-    <h2>Character: {{.Char}}</h2>
+<div class="details-box">
+    <h3>Rune: {{.Char}}</h3>
     <div class="bytes-info">
         {{range .RuneBytes}}
             <div class="byte-box">
-                Mask: {{.Utf8Mask}}<br>
-                {{.Binary}}
+				<span class="utf8-mask">{{.Utf8Mask}}</span>
+				<span class="binary">{{.Binary}}</span>
+				<span class="utf8-remainder">{{.Utf8Remainder}}</span>
             </div>
         {{end}}
     </div>
     <div style="margin-top: 10px; font-weight: bold;">
-        Unicode Binary: TBD
+        Unicode Code Point:
     </div>
     <div style="font-size: 1.2em; font-weight: bold;">
-        Code Point: {{.CodePoint}}
+        {{.CodePoint}}
     </div>
 </div>
 `))
@@ -215,7 +252,6 @@ func main() {
 	})
 
 	http.HandleFunc("/details", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("HERE!")
 		char := r.URL.Query().Get("char")
 		if char == "" {
 			http.Error(w, "Character not provided", http.StatusBadRequest)
@@ -225,9 +261,17 @@ func main() {
 		// Extract the first rune from the string
 		runeVal, _ := utf8.DecodeRuneInString(char)
 		runeInfo := processRune(runeVal)
+
 		fmt.Println("Rune Info: ", runeInfo)
+
 		w.Header().Set("Content-Type", "text/html")
 		detailsTmpl.Execute(w, runeInfo)
+	})
+
+	http.HandleFunc("/reset", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(""))
+		// w.Write([]byte(`<div id="result"></div><div id="details"></div>`))
 	})
 
 	http.ListenAndServe(":8080", nil)
@@ -258,18 +302,40 @@ func processInput(input string) []RuneInfo {
 }
 
 func processRune(r rune) RuneInfo {
+	var mask string
+	var remainder string
+
 	rune := RuneInfo{
 		Char:      string(r),
 		CodePoint: fmt.Sprintf("%d", r),
 	}
 
 	utf8Bytes := []byte(string(r))
+	utf8ByteBinary := fmt.Sprintf("%08b", utf8Bytes[0])
+
+	n := len(utf8Bytes)
+	if n > 1 {
+		mask = utf8Mask[n]
+		remainder = string(utf8ByteBinary[n+1:])
+	} else {
+		mask = utf8Mask[0]
+		remainder = string(utf8ByteBinary[1:])
+	}
+
+	fmt.Println(remainder)
+
 	for j, b := range utf8Bytes {
+		utf8ByteBinary = fmt.Sprintf("%08b", b)
+		if j > 0 {
+			mask = utf8Mask[1]
+			remainder = string(utf8ByteBinary[2:])
+		}
 		rune.RuneBytes = append(rune.RuneBytes, RuneByte{
 			RuneByteIndex: j,
 			Byte:          b,
-			Binary:        fmt.Sprintf("%08b", b),
-			Utf8Mask:      utf8Mask[j],
+			Binary:        utf8ByteBinary,
+			Utf8Mask:      mask,
+			Utf8Remainder: remainder,
 		})
 	}
 	return rune
