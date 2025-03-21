@@ -158,6 +158,34 @@ var tmpl = template.Must(template.New("index").Parse(`
             justify-content: center;
             align-items: center;
         }
+		.mask-box {
+            border: 1px solid gray;
+            padding: 5px;
+            background-color: #f4f4f4;
+            border-radius: 3px;
+            font-size: 0.9em;
+            text-align: center;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+			gap: 5px;
+		}
+		.mask-box span {
+			display: block; /* Each element will be on a new line */
+		}
+		.mask-box .utf8-mask {
+			font-size: 1em;
+		}
+		.mask-box .binary {
+			font-size: 1em;
+		}
+		.mask-box .utf8-remainder {
+			font-size: 1em;
+			text-align: right; /* Right-align remainder */
+		}
         .byte-index {
             font-size: 0.8em;
             color: #555;
@@ -185,14 +213,17 @@ var tmpl = template.Must(template.New("index").Parse(`
 		<button type="reset" 
 			class="reset-button"
 			hx-get="/reset" 
-			hx-target="#result, #details" 
+			hx-target="#all-results" 
 			hx-swap="innerHTML" 
-			hx-trigger="click">
+			hx-trigger="click"
+			onclick="this.closest('form').reset();">
 			Reset
 		</button>
 	</form>
-    <div id="result" class="rune-container"></div>
-	<div id="details" class="details-container"></div>
+	<div id="all-results">
+		<div id="result" class="rune-container"></div>
+		<div id="details" class="details-container"></div>
+	</div>
 </body>
 </html>
 `))
@@ -220,9 +251,10 @@ var detailsTmpl = template.Must(template.New("details").Parse(`
     <h3>Rune: {{.Char}}</h3>
     <div class="bytes-info">
         {{range .RuneBytes}}
-            <div class="byte-box">
+            <div class="mask-box">
 				<span class="utf8-mask">{{.Utf8Mask}}</span>
 				<span class="binary">{{.Binary}}</span>
+				<span></span>
 				<span class="utf8-remainder">{{.Utf8Remainder}}</span>
             </div>
         {{end}}
