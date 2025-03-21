@@ -206,24 +206,31 @@ var tmpl = template.Must(template.New("index").Parse(`
 </head>
 <body>
     <h1>Rune Seer</h1>
-	<p>Enter text to see the UTF-8 encoding of each rune.</p>
-	<form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" onreset="return false">
-		<input type="text" name="input" placeholder="Enter text here" required>
-		<button type="submit" class="submit-button">Submit</button>
-		<button type="reset" 
-			class="reset-button"
-			hx-get="/reset" 
-			hx-target="#all-results" 
-			hx-swap="innerHTML" 
-			hx-trigger="click"
-			onclick="this.closest('form').reset();">
-			Reset
-		</button>
-	</form>
-	<div id="all-results">
-		<div id="result" class="rune-container"></div>
-		<div id="details" class="details-container"></div>
-	</div>
+    <p>Enter text to see the UTF-8 encoding of each rune.</p>
+    <form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML">
+        <input type="text" name="input" id="inputField" placeholder="Enter text here" required>
+        <button type="submit" class="submit-button">Submit</button>
+        <button type="reset" 
+            class="reset-button"
+            onclick="resetForm();">
+            Reset
+        </button>
+    </form>
+    <div id="all-results">
+        <div id="result" class="rune-container"></div>
+        <div id="details" class="details-container"></div>
+    </div>
+
+    <script>
+        function resetForm() {
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('details').innerHTML = '';
+            // Manually reset the input field and reapply the placeholder
+            var inputField = document.getElementById('inputField');
+            inputField.value = '';  // Clear the input value
+            inputField.placeholder = 'Enter text here';  // Reset the placeholder
+        }
+    </script>
 </body>
 </html>
 `))
