@@ -159,3 +159,12 @@ input[type="text"] {
     left: 0;
     width: 100%;
 }
+.details-box span.code-point-text{
+    margin-top: 10px; 
+    font-weight: bold;
+}
+.details-box span.code-point-number {
+    font-size: 1.2em; 
+    font-weight: bold;
+}
+
