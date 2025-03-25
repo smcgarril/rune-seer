@@ -60,11 +60,9 @@ var tmpl = template.Must(template.New("index").Parse(`
         function resetForm() {
             document.getElementById('result').innerHTML = '';
             document.getElementById('details').innerHTML = '';
-
-            // Manually reset the input field and reapply the placeholder
             var inputField = document.getElementById('inputField');
-            inputField.value = '';  // Clear the input value
-            inputField.placeholder = 'Enter text here';  // Reset the placeholder
+            inputField.value = ''; 
+            inputField.placeholder = 'Enter text here';  
         }
     </script>
 </body>
