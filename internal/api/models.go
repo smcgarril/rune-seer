@@ -14,52 +14,51 @@ type RuneInfo struct {
 	Char      string
 	RuneIndex int
 	RuneBytes []RuneByte
-	CodePoint string
+	CodePoint rune
 }
 
 type RuneByte struct {
-	ByteIndex     int
-	RuneByteIndex int
-	Byte          byte
-	Binary        string
-	Utf8Mask      string
-	Utf8Remainder string
+	ByteIndex       int
+	ByteInRuneIndex int
+	Byte            byte
+	Binary          string
+	Utf8Mask        string
+	Utf8Remainder   string
 }
 
-func ProcessInput(input string) []RuneInfo {
+func processStringInput(input string) []RuneInfo {
 	var runes []RuneInfo
 	n := 0
-	for i, r := range input {
-		rune := RuneInfo{
-			Char:      string(r),
+	for i, c := range input {
+		r := RuneInfo{
+			Char:      string(c),
 			RuneIndex: i,
-			CodePoint: fmt.Sprintf("%d", r)}
-		utf8Bytes := []byte(string(r))
+			CodePoint: c}
+		utf8Bytes := []byte(string(c))
 		for j, b := range utf8Bytes {
-			rune.RuneBytes = append(rune.RuneBytes, RuneByte{
-				ByteIndex:     n,
-				RuneByteIndex: j,
-				Byte:          b,
-				Binary:        fmt.Sprintf("%08b", b),
-				Utf8Mask:      utf8Mask[j],
+			r.RuneBytes = append(r.RuneBytes, RuneByte{
+				ByteIndex:       n,
+				ByteInRuneIndex: j,
+				Byte:            b,
+				Binary:          fmt.Sprintf("%08b", b),
 			})
 			n++
 		}
-		runes = append(runes, rune)
+		runes = append(runes, r)
 	}
 	return runes
 }
 
-func ProcessRune(r rune) RuneInfo {
+func processRune(c rune) RuneInfo {
 	var mask string
 	var remainder string
 
-	rune := RuneInfo{
-		Char:      string(r),
-		CodePoint: fmt.Sprintf("%d", r),
+	r := RuneInfo{
+		Char:      string(c),
+		CodePoint: c,
 	}
 
-	utf8Bytes := []byte(string(r))
+	utf8Bytes := []byte(string(c))
 	utf8ByteBinary := fmt.Sprintf("%08b", utf8Bytes[0])
 
 	n := len(utf8Bytes)
@@ -71,21 +70,19 @@ func ProcessRune(r rune) RuneInfo {
 		remainder = string(utf8ByteBinary[1:])
 	}
 
-	fmt.Println(remainder)
-
 	for j, b := range utf8Bytes {
 		utf8ByteBinary = fmt.Sprintf("%08b", b)
 		if j > 0 {
 			mask = utf8Mask[1]
 			remainder = string(utf8ByteBinary[2:])
 		}
-		rune.RuneBytes = append(rune.RuneBytes, RuneByte{
-			RuneByteIndex: j,
-			Byte:          b,
-			Binary:        utf8ByteBinary,
-			Utf8Mask:      mask,
-			Utf8Remainder: remainder,
+		r.RuneBytes = append(r.RuneBytes, RuneByte{
+			ByteInRuneIndex: j,
+			Byte:            b,
+			Binary:          utf8ByteBinary,
+			Utf8Mask:        mask,
+			Utf8Remainder:   remainder,
 		})
 	}
-	return rune
+	return r
 }
