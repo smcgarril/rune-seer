@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"unicode/utf8"
 )
@@ -9,6 +8,7 @@ import (
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
+
 func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	input := r.FormValue("input")
@@ -26,8 +26,6 @@ func DetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 	runeVal, _ := utf8.DecodeRuneInString(char)
 	runeInfo := processRune(runeVal)
-
-	fmt.Println("Rune Info: ", runeInfo)
 
 	w.Header().Set("Content-Type", "text/html")
 	detailsTmpl.Execute(w, runeInfo)

@@ -75,3 +75,57 @@ func TestProcessStringInput(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessRune(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  rune
+		output RuneInfo
+	}{
+		{
+			name:   "Basic ASCII",
+			input:  'H',
+			output: RuneInfo{"H", 0, []RuneByte{{0, 0, 'H', "01001000", "0xxxxxxx", "1001000"}}, 'H'},
+		},
+		{
+			name:  "Unicode",
+			input: '😊',
+			output: RuneInfo{
+				"😊", 0, []RuneByte{
+					{0, 0, 0xF0, "11110000", "11110xxx", "000"},
+					{0, 1, 0x9F, "10011111", "10xxxxxx", "011111"},
+					{0, 2, 0x98, "10011000", "10xxxxxx", "011000"},
+					{0, 3, 0x8A, "10001010", "10xxxxxx", "001010"},
+				}, '😊'},
+		},
+		{
+			name:   "Empty Rune",
+			input:  0,
+			output: RuneInfo{"\x00", 0, []RuneByte{{0, 0, 0, "00000000", "0xxxxxxx", "0000000"}}, 0},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := processRune(tc.input)
+
+			if tc.output.Char != result.Char {
+				t.Fatalf("Expected char %s, got %s", tc.output.Char, result.Char)
+			}
+			if tc.output.RuneIndex != result.RuneIndex {
+				t.Fatalf("Expected RuneIndex %d, got %d", tc.output.RuneIndex, result.RuneIndex)
+			}
+			if tc.output.CodePoint != result.CodePoint {
+				t.Fatalf("Expected CodePoint %U, got %U", tc.output.CodePoint, result.CodePoint)
+			}
+			for i, expectedByte := range tc.output.RuneBytes {
+				gotByte := result.RuneBytes[i]
+				if expectedByte.ByteIndex != gotByte.ByteIndex || expectedByte.ByteInRuneIndex != gotByte.ByteInRuneIndex ||
+					expectedByte.Byte != gotByte.Byte || expectedByte.Binary != gotByte.Binary ||
+					expectedByte.Utf8Mask != gotByte.Utf8Mask || expectedByte.Utf8Remainder != gotByte.Utf8Remainder {
+					t.Fatalf("Mismatch in RuneByte at index %d: expected %v, got %v", i, expectedByte, gotByte)
+				}
+			}
+		})
+	}
+}
