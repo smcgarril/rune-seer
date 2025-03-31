@@ -2,7 +2,7 @@ package api
 
 import "html/template"
 
-var Tmpl = template.Must(template.New("index").Parse(`
+var tmpl = template.Must(template.New("index").Parse(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,7 +39,7 @@ var Tmpl = template.Must(template.New("index").Parse(`
 </html>
 `))
 
-var ResultTmpl = template.Must(template.New("result").Parse(`
+var resultTmpl = template.Must(template.New("result").Parse(`
 {{range .}}
 	<div class="rune-box" hx-get="/details?char={{.Char}}" hx-target="#details" hx-swap="innerHTML">
 		<div class="char">{{.Char}}</div>
@@ -54,7 +54,7 @@ var ResultTmpl = template.Must(template.New("result").Parse(`
 {{end}}
 `))
 
-var DetailsTmpl = template.Must(template.New("details").Parse(`
+var detailsTmpl = template.Must(template.New("details").Parse(`
 <div class="details-box">
     <h3>Rune: {{.Char}}</h3>
     <div class="bytes-info">
