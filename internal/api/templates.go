@@ -41,16 +41,20 @@ var tmpl = template.Must(template.New("index").Parse(`
 
 var resultTmpl = template.Must(template.New("result").Parse(`
 {{range .}}
-	<div class="rune-box" hx-get="/details?char={{.Char}}" hx-target="#details" hx-swap="innerHTML">
-		<div class="char">{{.Char}}</div>
-		<div class="bytes-info">
-			{{range .RuneBytes}}
-				<div class="byte-box">
-					{{.Binary}}
-				</div>
-			{{end}}
-		</div>
-	</div>
+    <button hx-post="/details" 
+            hx-target="#details" 
+            hx-swap="innerHTML"
+            hx-vals='{"char": "{{.Char}}"}'
+            class="rune-box">
+        <div class="char">{{.Char}}</div>
+        <div class="bytes-info">
+            {{range .RuneBytes}}
+                <div class="byte-box">
+                    {{.Binary}}
+                </div>
+            {{end}}
+        </div>
+    </button>
 {{end}}
 `))
 
