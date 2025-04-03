@@ -25,3 +25,9 @@ primary_region = 'iad'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+[deploy]
+  strategy = 'rolling' 
+
+[scale]
+  app = { min = 2, max = 2 } 

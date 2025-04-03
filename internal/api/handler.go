@@ -18,7 +18,12 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DetailsHandler(w http.ResponseWriter, r *http.Request) {
-	char := r.URL.Query().Get("char")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	char := r.FormValue("char")
 	if char == "" {
 		http.Error(w, "Character not provided", http.StatusBadRequest)
 		return
