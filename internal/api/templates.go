@@ -12,6 +12,7 @@ var tmpl = template.Must(template.New("index").Parse(`
     <title>Rune Seer</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
 	<link rel="stylesheet" href="/public/styles.css">
+    <link rel="icon" type="image/svg+xml" href="/public/triangle_eye.svg">
 </head>
 <body>
     <h1>Rune Seer</h1>
