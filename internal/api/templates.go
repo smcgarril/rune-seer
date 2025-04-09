@@ -8,6 +8,7 @@ var tmpl = template.Must(template.New("index").Parse(`
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no">
     <title>Rune Seer</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
 	<link rel="stylesheet" href="/public/styles.css">
