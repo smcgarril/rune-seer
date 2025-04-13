@@ -6,15 +6,23 @@ import (
 )
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl.Execute(w, nil)
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, "Template rendering failed", http.StatusInternalServerError)
+	}
 }
 
 func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 	input := r.FormValue("input")
 	response := processStringInput(input)
 	w.Header().Set("Content-Type", "text/html")
-	resultTmpl.Execute(w, response)
+	if err := resultTmpl.Execute(w, response); err != nil {
+		http.Error(w, "Template rendering failed", http.StatusInternalServerError)
+		return
+	}
 }
 
 func DetailsHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,9 +37,16 @@ func DetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	runeVal, _ := utf8.DecodeRuneInString(char)
+	runeVal, size := utf8.DecodeRuneInString(char)
+	if runeVal == utf8.RuneError && size == 1 {
+		http.Error(w, "Invalid UTF-8 character", http.StatusBadRequest)
+		return
+	}
 	runeInfo := processRune(runeVal)
 
 	w.Header().Set("Content-Type", "text/html")
-	detailsTmpl.Execute(w, runeInfo)
+	if err := detailsTmpl.Execute(w, runeInfo); err != nil {
+		http.Error(w, "Template rendering failed", http.StatusInternalServerError)
+		return
+	}
 }
