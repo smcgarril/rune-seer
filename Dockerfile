@@ -1,5 +1,8 @@
 ARG GO_VERSION=1
 FROM golang:${GO_VERSION}-bookworm as builder
+
+ENV GOTOOLCHAIN=auto
+
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -13,7 +16,7 @@ COPY . .
 
 RUN go build -o rune-seer ./cmd/main.go
 
-FROM golang:1.22
+FROM golang:1.24
 
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder /app/rune-seer /app/rune-seer
