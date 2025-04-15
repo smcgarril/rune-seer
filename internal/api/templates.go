@@ -43,20 +43,22 @@ var tmpl = template.Must(template.New("index").Parse(`
 
 var resultTmpl = template.Must(template.New("result").Parse(`
 {{range .}}
-    <button hx-post="/details" 
-            hx-target="#details" 
-            hx-swap="innerHTML"
-            hx-vals='{"char": "{{.Char}}"}'
-            class="rune-box">
-        <div class="char">{{.Char}}</div>
-        <div class="bytes-info">
-            {{range .RuneBytes}}
-                <div class="byte-box">
-                    {{.Binary}}
-                </div>
-            {{end}}
-        </div>
-    </button>
+    <form hx-post="/details" 
+          hx-target="#details" 
+          hx-swap="innerHTML" 
+          class="rune-form">
+        <input type="hidden" name="char" value="{{.Char}}">
+        <button type="submit" class="rune-box">
+            <div class="char">{{.Char}}</div>
+            <div class="bytes-info">
+                {{range .RuneBytes}}
+                    <div class="byte-box">
+                        {{.Binary}}
+                    </div>
+                {{end}}
+            </div>
+        </button>
+    </form>
 {{end}}
 `))
 
